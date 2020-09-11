@@ -3,15 +3,46 @@ A Zabbix plugin for monitoring MongoDB.
 
 # Installation
 1. Import the mongodb template to zabbix and link it to the zabbix mongodb host.
-2. Copy the scripts to mongodb host in /usr/local/bin .
+2. Copy the scripts to mongodb host in /usr/local/bin.
 3. Copy mongodb zabbix agent configuration to /etc/zabbix-agent/zabbix_agentd.d and restart zabbix agent.
 
 Note:
 - Zabbix sender uses zabbix agent configuration to send the metrics, please check the hostname is set in the zabbix agent config /etc/zabbix/zabbix_agentd.conf, by default the hostname may be commented out.
+- Change on zabbix-mongodb.py script the username and password parameter to the corresponding one.
 
-The following metrics are collected on mongodb version 3.0 by using python mongodb client, and then sent by zabbix sender.
+# Permissions needed by monitor user
 
-**Server Stats**
+Is recommended to create a new user with privileges to query all the stats. You can use the following example:
+
+## Login on Mongo shell and execute
+
+```
+use admin
+db.createRole(
+   {
+     role: "monitRole",
+     privileges: [
+       { resource: { cluster: true }, actions: [ "killop", "inprog" ] },  
+       { resource: { db: 'local', collection: 'oplog.rs'}, actions: [ "find"] },
+       { resource: { db: "", collection: "" }, actions: [ "killCursors" ] }
+     ],
+     roles: [ {role: 'read', db: 'admin'}, {role: 'clusterMonitor', db: 'admin'} ]
+   }
+)
+
+db.createUser({
+    user: "monit",
+    pwd: "monit",
+    roles: [
+        { role: "monitRole", db: "admin" },
+        { role: "read", db: "admin" }
+    ]
+})
+```
+
+The following metrics are collected on mongodb version 4.2 by using python mongodb client, and then sent by zabbix sender.
+
+# Server Stats
 - mongodb.ismaster
 - mongodb.version
 - mongodb.storageEngine
@@ -50,7 +81,7 @@ The following metrics are collected on mongodb version 3.0 by using python mongo
 - mongodb.globalLock.activeClients.writers
 - mongodb.globalLock.activeClients.readers
 
-**DB Stats**
+# DB Stats
 - mongodb.stats.storageSize[db]
 - mongodb.stats.ok[db]
 - mongodb.stats.avgObjSize[db]
